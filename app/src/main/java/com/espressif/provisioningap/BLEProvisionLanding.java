@@ -41,11 +41,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.espressif.provision.device_scanner.BleScanListener;
-import com.espressif.provision.device_scanner.BleScanner;
+import com.espressif.provision.listeners.BleScanListener;
 import com.espressif.provision.DeviceProvEvent;
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -78,15 +77,15 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private BleDeviceListAdapter adapter;
     private BluetoothAdapter bleAdapter;
-    private BleScanner bleScanner;
     private ArrayList<BluetoothDevice> deviceList;
     private HashMap<BluetoothDevice, String> bluetoothDevices;
     private Handler handler;
 
     private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
-    private Provision provisionLib;
+    private ESPProvisionManager provisionLib;
     private int securityType;
+    private boolean isScanning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,9 +121,8 @@ public class BLEProvisionLanding extends AppCompatActivity {
         Collection<BluetoothDevice> keySet = bluetoothDevices.keySet();
         deviceList = new ArrayList<>(keySet);
 
-        provisionLib = Provision.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
         initViews();
-        bleScanner = new BleScanner(this, SCAN_TIMEOUT, bleScanListener);
         EventBus.getDefault().register(this);
     }
 
@@ -297,19 +295,21 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void startScan() {
 
-        if (!hasPermissions() || bleScanner.isScanning()) {
+        if (!hasPermissions() || isScanning) {
             return;
         }
 
+        isScanning = true;
         deviceList.clear();
         bluetoothDevices.clear();
-        bleScanner.startScan();
+        provisionLib.searchBleEspDevices(SCAN_TIMEOUT, bleScanListener);
         updateProgressAndScanBtn();
     }
 
     private void stopScan() {
 
-        bleScanner.stopScan();
+        isScanning = false;
+//        bleScanner.stopScan();
         updateProgressAndScanBtn();
 
         if (deviceList.size() <= 0) {
@@ -323,7 +323,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
      */
     private void updateProgressAndScanBtn() {
 
-        if (bleScanner.isScanning()) {
+        if (isScanning) {
 
             btnScan.setEnabled(false);
             btnScan.setAlpha(0.5f);
@@ -400,6 +400,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         @Override
         public void scanCompleted() {
+            isScanning = false;
             updateProgressAndScanBtn();
         }
 

@@ -19,7 +19,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.net.wifi.ScanResult;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,9 +41,9 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.provision.DeviceProvEvent;
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 import com.espressif.provision.WiFiAccessPoint;
-import com.espressif.provision.device_scanner.WiFiScanListener;
+import com.espressif.provision.listeners.WiFiDeviceScanListener;
 import com.espressif.provision.device_scanner.WiFiScanner;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -76,14 +75,14 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     private RelativeLayout prefixLayout;
 
     private WiFiListAdapter adapter;
-    private WiFiScanner wifiScanner;
     private ArrayList<WiFiAccessPoint> deviceList;
     private Handler handler;
 
     private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
-    private Provision provisionLib;
+    private ESPProvisionManager provisionLib;
     private int securityType;
+    private boolean isScanning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,9 +99,8 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         handler = new Handler();
         deviceList = new ArrayList<>();
 
-        provisionLib = Provision.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
         initViews();
-        wifiScanner = new WiFiScanner(this, wifiScanListener);
         EventBus.getDefault().register(this);
     }
 
@@ -258,12 +256,13 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
     private void startScan() {
 
-        if (!hasPermissions() || wifiScanner.isScanning()) {
+        if (!hasPermissions() || isScanning) {
             return;
         }
 
+        isScanning = true;
         deviceList.clear();
-        wifiScanner.startScan();
+        provisionLib.searchWiFiEspDevices(wifiScanListener);
         updateProgressAndScanBtn();
     }
 
@@ -282,7 +281,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
      */
     private void updateProgressAndScanBtn() {
 
-        if (wifiScanner.isScanning()) {
+        if (isScanning) {
 
             btnScan.setEnabled(false);
             btnScan.setAlpha(0.5f);
@@ -330,11 +329,12 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         }
     };
 
-    private WiFiScanListener wifiScanListener = new WiFiScanListener() {
+    private WiFiDeviceScanListener wifiScanListener = new WiFiDeviceScanListener() {
 
         @Override
         public void scanCompleted(ArrayList<WiFiAccessPoint> scanResults) {
 
+            isScanning = false;
             deviceList.addAll(scanResults);
             listView.setVisibility(View.VISIBLE);
             adapter.notifyDataSetChanged();
@@ -343,6 +343,10 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
         @Override
         public void onFailure(Exception e) {
+            isScanning = false;
+            listView.setVisibility(View.VISIBLE);
+            adapter.notifyDataSetChanged();
+            updateProgressAndScanBtn();
             e.printStackTrace();
         }
     };
@@ -362,7 +366,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "=================== Connect to device : " + wifiDevice.getWifiName());
 
             if (wifiDevice.getSecurity() != LibConstants.WIFI_OPEN) {
-                provisionLib.connectWiFiDevice(BASE_URL, wifiDevice.getWifiName(), "");
+                provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, wifiDevice.getWifiName(), "");
             } else {
                 askForNetwork(wifiDevice.getWifiName(), wifiDevice.getSecurity());
             }
@@ -437,7 +441,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
                     } else {
 
                         dialog.dismiss();
-                        provisionLib.connectWiFiDevice(BASE_URL, ssid, password);
+                        provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, ssid, password);
                     }
 
                 } else {
@@ -446,7 +450,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
                         password = "";
                     }
                     dialog.dismiss();
-                    provisionLib.connectWiFiDevice(BASE_URL, ssid, password);
+                    provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, ssid, password);
                 }
             }
         });

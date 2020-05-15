@@ -11,7 +11,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 
 import java.util.ArrayList;
 
@@ -65,8 +65,8 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
             final String pop = etPop.getText().toString();
             Log.d(TAG, "POP : " + pop);
-            Provision provisionLib = Provision.getProvisionInstance(getApplicationContext());
-            provisionLib.setProofOfPossession(pop);
+            ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+            provisionLib.getEspDevice().setProofOfPossession(pop);
             ArrayList<String> deviceCaps = provisionLib.getDeviceCapabilities();
 
             if (deviceCaps.contains("wifi_scan")) {

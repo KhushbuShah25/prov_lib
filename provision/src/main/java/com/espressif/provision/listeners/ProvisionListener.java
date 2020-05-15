@@ -1,4 +1,6 @@
-package com.espressif.provision;
+package com.espressif.provision.listeners;
+
+import com.espressif.provision.LibConstants;
 
 public interface ProvisionListener {
 

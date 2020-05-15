@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import com.espressif.provision.LibConstants;
 import com.espressif.provision.WiFiAccessPoint;
+import com.espressif.provision.listeners.WiFiDeviceScanListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,13 +22,13 @@ public class WiFiScanner {
     private static final String TAG = WiFiScanner.class.getSimpleName();
 
     private Context context;
-    private WiFiScanListener wiFiScanListener;
+    private WiFiDeviceScanListener wiFiScanListener;
     private WifiManager wifiManager;
     private ArrayList<WiFiAccessPoint> results;
 
     private boolean isScanning = false;
 
-    public WiFiScanner(Context context, WiFiScanListener wiFiScanListener) {
+    public WiFiScanner(Context context, WiFiDeviceScanListener wiFiScanListener) {
 
         this.context = context;
         this.wiFiScanListener = wiFiScanListener;

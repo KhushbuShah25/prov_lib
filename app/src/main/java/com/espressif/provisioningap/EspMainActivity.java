@@ -34,7 +34,7 @@ import androidx.cardview.widget.CardView;
 
 import com.espressif.provision.DeviceProvEvent;
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -46,7 +46,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private static final int REQUEST_LOCATION = 1;
 
-    private Provision provisionLib;
+    private ESPProvisionManager provisionLib;
     private CardView btnAddDevice;
     private SharedPreferences sharedPreferences;
 
@@ -60,7 +60,7 @@ public class EspMainActivity extends AppCompatActivity {
         initViews();
 
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-        provisionLib = Provision.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
         EventBus.getDefault().register(this);
     }
 
@@ -152,7 +152,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void askForDeviceType() {
 
-        provisionLib = Provision.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
         String deviceType = sharedPreferences.getString("device_types", "both");
         final boolean isSec1 = sharedPreferences.getBoolean("security_type", true);
         Log.e(TAG, "Device Types : " + deviceType);
@@ -165,9 +165,9 @@ public class EspMainActivity extends AppCompatActivity {
         if (deviceType.equals("ble")) {
 
             if (isSec1) {
-                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_1);
+                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_1);
             } else {
-                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_0);
+                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_0);
             }
             Intent intent = new Intent(EspMainActivity.this, BLEProvisionLanding.class);
             intent.putExtra("security_type", securityType);
@@ -176,9 +176,9 @@ public class EspMainActivity extends AppCompatActivity {
         } else if (deviceType.equals("wifi")) {
 
             if (isSec1) {
-                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_1);
+                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_1);
             } else {
-                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_0);
+                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_0);
             }
             Intent intent1 = new Intent(EspMainActivity.this, ProvisionLanding.class);
             intent1.putExtra("security_type", securityType);
@@ -199,9 +199,9 @@ public class EspMainActivity extends AppCompatActivity {
                     switch (position) {
                         case 0:
                             if (isSec1) {
-                                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_1);
+                                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_1);
                             } else {
-                                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_0);
+                                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_BLE, LibConstants.SecurityType.SECURITY_0);
                             }
                             Intent intent = new Intent(EspMainActivity.this, BLEProvisionLanding.class);
                             intent.putExtra("security_type", finalSecurityType);
@@ -209,9 +209,9 @@ public class EspMainActivity extends AppCompatActivity {
                             break;
                         case 1:
                             if (isSec1) {
-                                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_1);
+                                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_1);
                             } else {
-                                provisionLib.setProvisionLib(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_0);
+                                provisionLib.createESPDevice(LibConstants.TransportType.TRANSPORT_SOFTAP, LibConstants.SecurityType.SECURITY_0);
                             }
                             Intent intent1 = new Intent(EspMainActivity.this, ProvisionLanding.class);
                             intent1.putExtra("security_type", finalSecurityType);

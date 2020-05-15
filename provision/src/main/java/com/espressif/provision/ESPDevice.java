@@ -1,18 +1,10 @@
 package com.espressif.provision;
 
-import android.bluetooth.BluetoothDevice;
 import android.content.Context;
-import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Handler;
-import android.provider.Settings;
 import android.util.Log;
 
+import com.espressif.provision.listeners.ProvisionListener;
+import com.espressif.provision.listeners.WiFiScanListener;
 import com.espressif.provision.security.Security;
 import com.espressif.provision.security.Security0;
 import com.espressif.provision.security.Security1;
@@ -21,16 +13,8 @@ import com.espressif.provision.transport.SoftAPTransport;
 import com.espressif.provision.transport.Transport;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import org.greenrobot.eventbus.EventBus;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.UUID;
 
-import cloud.Cloud;
 import espressif.Constants;
 import espressif.WifiConfig;
 import espressif.WifiConstants;
@@ -38,49 +22,29 @@ import espressif.WifiScan;
 
 import static java.lang.Thread.sleep;
 
-public class Provision {
+public class ESPDevice {
 
-    private static final String TAG = Provision.class.getSimpleName();
-
-    private static Provision provision;
-    private static Transport transport;
-    private static Security security;
-    private static Session session;
+    private static final String TAG = ESPDevice.class.getSimpleName();
 
     private Context context;
-    private Handler handler;
 
+    private Session session;
+    private static Security security;
+    private static Transport transport;
+
+    private WiFiScanListener wifiScanListener;
+    private ProvisionListener provisionListener;
+    private LibConstants.TransportType transportType;
+    private LibConstants.SecurityType securityType;
+
+    private String proofOfPossession;
     private int totalCount;
     private int startIndex;
-    private String softApBaseUrl;
-    private String proofOfPossession;
-
     private ArrayList<WiFiAccessPoint> wifiApList;
-    private ArrayList<String> deviceCapabilities = new ArrayList<>();
-    private ProvisionListener provisionListener;
-    private WiFiScanListener wifiScanListener;
-    private LibConstants.TransportType transportType = LibConstants.TransportType.TRANSPORT_SOFTAP;
-    private LibConstants.SecurityType securityType = LibConstants.SecurityType.SECURITY_0;
 
-    public static Provision getProvisionInstance(Context context) {
+    public ESPDevice(Context context, LibConstants.TransportType transportType, LibConstants.SecurityType securityType) {
 
-        if (provision == null) {
-            provision = new Provision(context);
-        }
-        return provision;
-    }
-
-    private Provision(Context context) {
         this.context = context;
-        handler = new Handler();
-    }
-
-    public void setProvisionListener(ProvisionListener provisionListener) {
-        this.provisionListener = provisionListener;
-    }
-
-    public void setProvisionLib(LibConstants.TransportType transportType, LibConstants.SecurityType securityType) {
-
         this.transportType = transportType;
         this.securityType = securityType;
 
@@ -96,88 +60,8 @@ public class Provision {
         }
     }
 
-    public void connectBLEDevice(BluetoothDevice bluetoothDevice, UUID primaryServiceUuid) {
-
-        if (transport instanceof BLETransport) {
-            ((BLETransport) transport).connect(bluetoothDevice, primaryServiceUuid);
-        } else {
-            // TODO Send Error
-            Log.e(TAG, "Wrong transport init");
-        }
-    }
-
-    public void connectWiFiDevice(String baseUrl, String ssid, String password) {
-
-        Log.e(TAG, "connectWiFiDevice ==========================");
-        softApBaseUrl = baseUrl;
-
-        // TODO
-
-        if (transport instanceof SoftAPTransport) {
-
-//            enableOnlyWifiNetwork();
-//            deviceConnectionReqCount = 0;
-//            ((SoftAPTransport) transport).setBaseUrl(softApBaseUrl);
-//            connectWiFiDevice();
-
-        } else {
-            // TODO Send Error
-            Log.e(TAG, "Wrong transport init");
-        }
-    }
-
-    public void connectWiFiDevice(String baseUrl) {
-
-        softApBaseUrl = baseUrl;
-
-        if (transport instanceof SoftAPTransport) {
-
-            enableOnlyWifiNetwork();
-            deviceConnectionReqCount = 0;
-            ((SoftAPTransport) transport).setBaseUrl(softApBaseUrl);
-            connectWiFiDevice();
-
-        } else {
-            // TODO Send Error
-            Log.e(TAG, "Wrong transport init");
-        }
-    }
-
-    public ArrayList<String> getDeviceCapabilities() {
-
-        if (transport instanceof BLETransport) {
-            return ((BLETransport) transport).deviceCapabilities;
-        } else {
-            return deviceCapabilities;
-        }
-    }
-
     public void setProofOfPossession(String pop) {
         this.proofOfPossession = pop;
-    }
-
-    private void initSession(final ResponseListener listener) {
-
-        if (securityType.equals(LibConstants.SecurityType.SECURITY_0)) {
-            security = new Security0();
-        } else {
-            security = new Security1(proofOfPossession);
-        }
-
-        session = new Session(transport, security);
-
-        session.init(null, new Session.SessionListener() {
-
-            @Override
-            public void OnSessionEstablished() {
-                listener.onSuccess(null);
-            }
-
-            @Override
-            public void OnSessionEstablishFailed(Exception e) {
-                listener.onFailure(e);
-            }
-        });
     }
 
     public void scanNetworks(final WiFiScanListener wifiScanListener) {
@@ -227,25 +111,26 @@ public class Provision {
         }
     }
 
-    public void associateDevice(String userId, final String secretKey, final ResponseListener listener) {
+    private void initSession(final ResponseListener listener) {
 
-        byte[] message = Messenger.prepareAssociateDeviceMsg(userId, secretKey);
-        byte[] encryptedMsg = security.encrypt(message);
+        if (securityType.equals(LibConstants.SecurityType.SECURITY_0)) {
+            security = new Security0();
+        } else {
+            security = new Security1(proofOfPossession);
+        }
 
-        transport.sendConfigData(LibConstants.HANDLER_CLOUD_USER_ASSOC, encryptedMsg, new ResponseListener() {
+        session = new Session(transport, security);
+
+        session.init(null, new Session.SessionListener() {
 
             @Override
-            public void onSuccess(byte[] returnData) {
-
-                processAssociateDeviceDetails(returnData, secretKey);
+            public void OnSessionEstablished() {
+                listener.onSuccess(null);
             }
 
             @Override
-            public void onFailure(Exception e) {
-
-                if (listener != null) {
-                    listener.onFailure(e);
-                }
+            public void OnSessionEstablishFailed(Exception e) {
+                listener.onFailure(e);
             }
         });
     }
@@ -445,8 +330,9 @@ public class Provision {
                     if (provisionListener != null) {
                         provisionListener.deviceProvisioningSuccess();
                     }
-                    session = null;
-                    disableOnlyWifiNetwork();
+                    // TODO
+//                    session = null;
+//                    disableOnlyWifiNetwork();
 
                 } else if (wifiStationState == WifiConstants.WifiStationState.Disconnected) {
 
@@ -582,23 +468,6 @@ public class Provision {
         }
     }
 
-    private void processAssociateDeviceDetails(byte[] responseData, String secretKey) {
-
-        try {
-            Cloud.CloudConfigPayload payload = Cloud.CloudConfigPayload.parseFrom(responseData);
-            Cloud.RespGetSetDetails response = payload.getRespGetSetDetails();
-
-            if (response.getStatus() == Cloud.CloudConfigStatus.Success) {
-
-                String deviceSecret = response.getDeviceSecret();
-                // TODO
-            }
-        } catch (InvalidProtocolBufferException e) {
-
-            e.printStackTrace();
-        }
-    }
-
     private Constants.Status processWifiConfigResponse(byte[] responseData) {
 
         Constants.Status status = Constants.Status.InvalidSession;
@@ -639,126 +508,5 @@ public class Provision {
             e.printStackTrace();
         }
         return new Object[]{wifiStationState, failedReason};
-    }
-
-    ConnectivityManager connectivityManager;
-    ConnectivityManager.NetworkCallback networkCallback;
-
-    private void enableOnlyWifiNetwork() {
-
-        connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkRequest.Builder request = new NetworkRequest.Builder();
-        request.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-
-        networkCallback = new ConnectivityManager.NetworkCallback() {
-
-            @Override
-            public void onAvailable(Network network) {
-
-                if (Build.VERSION.RELEASE.equalsIgnoreCase("6.0")) {
-
-                    if (!Settings.System.canWrite(context)) {
-                        Intent goToSettings = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                        goToSettings.setData(Uri.parse("package:" + context.getPackageName()));
-                        context.startActivity(goToSettings);
-                    }
-                }
-                connectivityManager.bindProcessToNetwork(network);
-            }
-        };
-        connectivityManager.registerNetworkCallback(request.build(), networkCallback);
-    }
-
-    public void disableOnlyWifiNetwork() {
-
-        Log.d(TAG, "disableOnlyWifiNetwork()");
-
-        if (connectivityManager != null) {
-
-            try {
-                connectivityManager.bindProcessToNetwork(null);
-                connectivityManager.unregisterNetworkCallback(networkCallback);
-            } catch (Exception e) {
-                Log.e(TAG, "Connectivity Manager is already unregistered");
-            }
-        }
-    }
-
-    private int deviceConnectionReqCount = 0;
-
-    private Runnable connectWithDeviceTask = new Runnable() {
-
-        @Override
-        public void run() {
-
-            Log.d(TAG, "Connecting to device");
-            deviceConnectionReqCount++;
-            String tempData = "ESP";
-
-            transport.sendConfigData(LibConstants.HANDLER_PROTO_VER, tempData.getBytes(), new ResponseListener() {
-
-                @Override
-                public void onSuccess(byte[] returnData) {
-
-                    String data = new String(returnData, StandardCharsets.UTF_8);
-                    Log.d(TAG, "Value : " + data);
-                    deviceCapabilities = new ArrayList<>();
-
-                    try {
-                        JSONObject jsonObject = new JSONObject(data);
-                        JSONObject provInfo = jsonObject.getJSONObject("prov");
-
-                        String versionInfo = provInfo.getString("ver");
-                        Log.d(TAG, "Device Version : " + versionInfo);
-
-                        JSONArray capabilities = provInfo.getJSONArray("cap");
-
-                        for (int i = 0; i < capabilities.length(); i++) {
-                            String cap = capabilities.getString(i);
-                            deviceCapabilities.add(cap);
-                        }
-                        Log.d(TAG, "Capabilities : " + deviceCapabilities);
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Log.d(TAG, "Capabilities JSON not available.");
-                    }
-                    EventBus.getDefault().post(new DeviceProvEvent(LibConstants.EVENT_DEVICE_CONNECTED));
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    e.printStackTrace();
-
-                    if (deviceConnectionReqCount == 3) {
-
-                        handler.removeCallbacks(connectWithDeviceTask);
-                        sendDeviceConnectionFailure();
-                    } else {
-                        connectWiFiDevice();
-                    }
-                }
-            });
-        }
-    };
-
-    private Runnable deviceConnectionFailedTask = new Runnable() {
-
-        @Override
-        public void run() {
-
-            handler.removeCallbacks(connectWithDeviceTask);
-            EventBus.getDefault().post(new DeviceProvEvent(LibConstants.EVENT_DEVICE_CONNECTION_FAILED));
-        }
-    };
-
-    private void sendDeviceConnectionFailure() {
-        handler.postDelayed(deviceConnectionFailedTask, 1000);
-    }
-
-    private void connectWiFiDevice() {
-
-        handler.removeCallbacks(connectWithDeviceTask);
-        handler.postDelayed(connectWithDeviceTask, 100);
     }
 }

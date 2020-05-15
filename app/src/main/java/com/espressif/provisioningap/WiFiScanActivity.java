@@ -20,9 +20,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 import com.espressif.provision.WiFiAccessPoint;
-import com.espressif.provision.WiFiScanListener;
+import com.espressif.provision.listeners.WiFiScanListener;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
@@ -99,8 +99,8 @@ public class WiFiScanActivity extends AppCompatActivity {
         });
         handler.postDelayed(stopScanningTask, 15000);
 
-        Provision provisionLib = Provision.getProvisionInstance(getApplicationContext());
-        provisionLib.scanNetworks(new WiFiScanListener() {
+        ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        provisionLib.getEspDevice().scanNetworks(new WiFiScanListener() {
 
             @Override
             public void onWifiListReceived(final ArrayList<WiFiAccessPoint> wifiList) {

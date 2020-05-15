@@ -26,8 +26,8 @@ import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.provision.DeviceProvEvent;
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
-import com.espressif.provision.ProvisionListener;
+import com.espressif.provision.ESPProvisionManager;
+import com.espressif.provision.listeners.ProvisionListener;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -131,8 +131,8 @@ public class ProvisionActivity extends AppCompatActivity {
         tick1.setVisibility(View.GONE);
         progress1.setVisibility(View.VISIBLE);
 
-        Provision provisionLib = Provision.getProvisionInstance(getApplicationContext());
-        provisionLib.provision(ssidValue, passphraseValue, new ProvisionListener() {
+        ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        provisionLib.getEspDevice().provision(ssidValue, passphraseValue, new ProvisionListener() {
 
             @Override
             public void createSessionFailed(Exception e) {

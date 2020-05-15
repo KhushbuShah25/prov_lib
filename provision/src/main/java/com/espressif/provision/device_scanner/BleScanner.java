@@ -12,12 +12,16 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.espressif.provision.listeners.BleScanListener;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class BleScanner {
 
     private static final String TAG = BleScanner.class.getSimpleName();
+
+    private static final long MIN_SCAN_TIME = 6000;
 
     private Context context;
     private BleScanListener bleScanListener;
@@ -27,11 +31,27 @@ public class BleScanner {
     private long scanTimeout;
     private boolean isScanning = false;
 
+    public BleScanner(Context context, BleScanListener bleScannerListener) {
+
+        this.context = context;
+        this.scanTimeout = MIN_SCAN_TIME;
+        this.bleScanListener = bleScannerListener;
+
+        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+    }
+
     public BleScanner(Context context, long scanTimeoutInMillis, BleScanListener bleScannerListener) {
 
         this.context = context;
-        this.scanTimeout = scanTimeoutInMillis;
         this.bleScanListener = bleScannerListener;
+
+        if (scanTimeoutInMillis >= MIN_SCAN_TIME) {
+            this.scanTimeout = scanTimeoutInMillis;
+        } else {
+            Log.e(TAG, "Scan time should be more than 6 seconds.");
+            this.scanTimeout = MIN_SCAN_TIME;
+        }
 
         final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
@@ -39,12 +59,12 @@ public class BleScanner {
 
     public void startScan() {
 
-        Log.d(TAG, "startScan");
+        Log.e(TAG, "startScan : " + scanTimeout);
 
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         List<ScanFilter> filters = new ArrayList<>();
         ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                 .build();
 
         isScanning = true;
@@ -57,12 +77,12 @@ public class BleScanner {
 
                 stopScan();
             }
-        }, scanTimeout);
+        }, 6000);
     }
 
     public void stopScan() {
 
-        Log.d(TAG, "onStopBleScan()");
+        Log.e(TAG, "onStopBleScan()");
 
         if (bluetoothLeScanner != null && bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
             try {
@@ -86,7 +106,7 @@ public class BleScanner {
 
             if (result.getDevice() != null && !TextUtils.isEmpty(result.getDevice().getName())) {
 
-                Log.d(TAG, "onScanResult");
+                Log.e(TAG, "========================== Device Found : " + result.getDevice().getName());
                 bleScanListener.onPeripheralFound(result.getDevice(), result);
             }
         }

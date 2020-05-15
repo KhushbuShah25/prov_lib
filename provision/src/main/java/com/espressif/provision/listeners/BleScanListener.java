@@ -1,4 +1,4 @@
-package com.espressif.provision.device_scanner;
+package com.espressif.provision.listeners;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanResult;

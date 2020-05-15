@@ -28,7 +28,7 @@ import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.provision.DeviceProvEvent;
 import com.espressif.provision.LibConstants;
-import com.espressif.provision.Provision;
+import com.espressif.provision.ESPProvisionManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -53,7 +53,7 @@ public class ProvisionLanding extends AppCompatActivity {
     private TextView txtWiFiSettingBtn;
     private ImageView arrowImageWiFiSetting;
     private ContentLoadingProgressBar progressBarWiFiSetting;
-    private Provision provisionLib;
+    private ESPProvisionManager provisionLib;
     private int securityType;
 
     @Override
@@ -61,7 +61,7 @@ public class ProvisionLanding extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
         securityType = getIntent().getIntExtra("security_type", 0);
-        provisionLib = Provision.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
         EventBus.getDefault().register(this);
         initViews();
     }

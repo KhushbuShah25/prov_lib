@@ -1,6 +1,4 @@
-package com.espressif.provision.device_scanner;
-
-import android.net.wifi.ScanResult;
+package com.espressif.provision.listeners;
 
 import com.espressif.provision.WiFiAccessPoint;
 
@@ -9,7 +7,7 @@ import java.util.ArrayList;
 /**
  * Interface for BLE device scanning.
  */
-public interface WiFiScanListener {
+public interface WiFiDeviceScanListener {
 
     /**
      * Callback method for scan completed.
