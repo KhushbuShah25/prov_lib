@@ -1,14 +1,26 @@
-package com.espressif.provision;
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+package com.espressif.provision.utils;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
-import cloud.Cloud;
-import espressif.Constants;
 import espressif.WifiConfig;
 import espressif.WifiScan;
 
-public class Messenger {
+public class MessengeHelper {
 
     // Send Wi-Fi Scan command
     public static byte[] prepareWiFiScanMsg() {
@@ -112,33 +124,33 @@ public class Messenger {
     }
 
     // Use device association
-    public static byte[] prepareAssociateDeviceMsg(String userId, String secretKey) {
+//    public static byte[] prepareAssociateDeviceMsg(String userId, String secretKey) {
+//
+//        Cloud.CmdGetSetDetails deviceSecretRequest = Cloud.CmdGetSetDetails.newBuilder()
+//                .setUserID(userId)
+//                .setSecretKey(secretKey)
+//                .build();
+//        Cloud.CloudConfigMsgType msgType = Cloud.CloudConfigMsgType.TypeCmdGetSetDetails;
+//        Cloud.CloudConfigPayload payload = Cloud.CloudConfigPayload.newBuilder()
+//                .setMsg(msgType)
+//                .setCmdGetSetDetails(deviceSecretRequest)
+//                .build();
+//
+//        return payload.toByteArray();
+//    }
 
-        Cloud.CmdGetSetDetails deviceSecretRequest = Cloud.CmdGetSetDetails.newBuilder()
-                .setUserID(userId)
-                .setSecretKey(secretKey)
-                .build();
-        Cloud.CloudConfigMsgType msgType = Cloud.CloudConfigMsgType.TypeCmdGetSetDetails;
-        Cloud.CloudConfigPayload payload = Cloud.CloudConfigPayload.newBuilder()
-                .setMsg(msgType)
-                .setCmdGetSetDetails(deviceSecretRequest)
-                .build();
-
-        return payload.toByteArray();
-    }
-
-    public static Constants.Status processWiFiConfigResponse(byte[] responseData) {
-
-        Constants.Status status = Constants.Status.InvalidSession;
-
-        try {
-            WifiConfig.WiFiConfigPayload wiFiConfigPayload = WifiConfig.WiFiConfigPayload.parseFrom(responseData);
-            status = wiFiConfigPayload.getRespSetConfig().getStatus();
-        } catch (InvalidProtocolBufferException e) {
-            e.printStackTrace();
-        }
-        return status;
-    }
+//    public static Constants.Status processWiFiConfigResponse(byte[] responseData) {
+//
+//        Constants.Status status = Constants.Status.InvalidSession;
+//
+//        try {
+//            WifiConfig.WiFiConfigPayload wiFiConfigPayload = WifiConfig.WiFiConfigPayload.parseFrom(responseData);
+//            status = wiFiConfigPayload.getRespSetConfig().getStatus();
+//        } catch (InvalidProtocolBufferException e) {
+//            e.printStackTrace();
+//        }
+//        return status;
+//    }
 
 //    public static Constants.Status processWiFiConfigResponse(byte[] responseData) {
 //

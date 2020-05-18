@@ -65,9 +65,9 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
             final String pop = etPop.getText().toString();
             Log.d(TAG, "POP : " + pop);
-            ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+            ESPProvisionManager provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
             provisionLib.getEspDevice().setProofOfPossession(pop);
-            ArrayList<String> deviceCaps = provisionLib.getDeviceCapabilities();
+            ArrayList<String> deviceCaps = provisionLib.getEspDevice().getDeviceCapabilities();
 
             if (deviceCaps.contains("wifi_scan")) {
                 goToWiFiScanListActivity();

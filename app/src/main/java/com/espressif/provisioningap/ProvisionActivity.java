@@ -25,7 +25,7 @@ import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.LibConstants;
+import com.espressif.provision.ESPConstants;
 import com.espressif.provision.ESPProvisionManager;
 import com.espressif.provision.listeners.ProvisionListener;
 
@@ -131,7 +131,7 @@ public class ProvisionActivity extends AppCompatActivity {
         tick1.setVisibility(View.GONE);
         progress1.setVisibility(View.VISIBLE);
 
-        ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        ESPProvisionManager provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
         provisionLib.getEspDevice().provision(ssidValue, passphraseValue, new ProvisionListener() {
 
             @Override
@@ -221,7 +221,7 @@ public class ProvisionActivity extends AppCompatActivity {
             }
 
             @Override
-            public void provisionStatusUpdate(final LibConstants.ProvisionFailureReason failureReason) {
+            public void provisioningFailedFromDevice(final ESPConstants.ProvisionFailureReason failureReason) {
 
                 runOnUiThread(new Runnable() {
                     @Override

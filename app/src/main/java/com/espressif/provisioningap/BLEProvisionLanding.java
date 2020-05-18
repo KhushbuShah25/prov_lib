@@ -40,11 +40,12 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 
-import com.espressif.provision.listeners.BleScanListener;
 import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.LibConstants;
 import com.espressif.provision.ESPProvisionManager;
+import com.espressif.provision.ESPConstants;
+import com.espressif.provision.listeners.BleScanListener;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -53,7 +54,6 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.UUID;
 
 public class BLEProvisionLanding extends AppCompatActivity {
 
@@ -64,7 +64,6 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private static final int REQUEST_FINE_LOCATION = 2;
 
     // Time out
-    private static final long SCAN_TIMEOUT = 3000;
     private static final long DEVICE_CONNECT_TIMEOUT = 20000;
 
     public static boolean isBleWorkDone = false;
@@ -121,7 +120,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         Collection<BluetoothDevice> keySet = bluetoothDevices.keySet();
         deviceList = new ArrayList<>(keySet);
 
-        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
     }
@@ -202,9 +201,9 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         switch (event.getEventType()) {
 
-            case LibConstants.EVENT_DEVICE_CONNECTED:
+            case ESPConstants.EVENT_DEVICE_CONNECTED:
                 Log.e(TAG, "Device Connected Event Received");
-                ArrayList<String> deviceCaps = provisionLib.getDeviceCapabilities();
+                ArrayList<String> deviceCaps = provisionLib.getEspDevice().getDeviceCapabilities();
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
                 isDeviceConnected = true;
@@ -223,7 +222,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
                 }
                 break;
 
-            case LibConstants.EVENT_DEVICE_DISCONNECTED:
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
 
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
@@ -231,7 +230,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
                 Toast.makeText(BLEProvisionLanding.this, "Device disconnected", Toast.LENGTH_SHORT).show();
                 break;
 
-            case LibConstants.EVENT_DEVICE_CONNECTION_FAILED:
+            case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
                 isDeviceConnected = false;
@@ -302,14 +301,34 @@ public class BLEProvisionLanding extends AppCompatActivity {
         isScanning = true;
         deviceList.clear();
         bluetoothDevices.clear();
-        provisionLib.searchBleEspDevices(SCAN_TIMEOUT, bleScanListener);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        provisionLib.searchBleEspDevices(bleScanListener);
         updateProgressAndScanBtn();
     }
 
     private void stopScan() {
 
         isScanning = false;
-//        bleScanner.stopScan();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        provisionLib.stopBleScan();
         updateProgressAndScanBtn();
 
         if (deviceList.size() <= 0) {
@@ -375,6 +394,11 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private BleScanListener bleScanListener = new BleScanListener() {
 
         @Override
+        public void scanStartFailed() {
+            Toast.makeText(BLEProvisionLanding.this, "Please turn on Bluetooth to connect BLE device", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
         public void onPeripheralFound(BluetoothDevice device, ScanResult scanResult) {
 
             Log.d(TAG, "====== onPeripheralFound ===== " + device.getName());
@@ -406,6 +430,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         @Override
         public void onFailure(Exception e) {
+            Log.e(TAG, e.getMessage());
             e.printStackTrace();
         }
     };
@@ -415,6 +440,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
+            stopScan();
             isConnecting = true;
             isDeviceConnected = false;
             btnScan.setVisibility(View.GONE);
@@ -424,8 +450,17 @@ public class BLEProvisionLanding extends AppCompatActivity {
             BluetoothDevice device = adapter.getItem(position);
             String uuid = bluetoothDevices.get(device);
             Log.d(TAG, "=================== Connect to device : " + device.getName() + " UUID : " + uuid);
-
-            provisionLib.connectBLEDevice(device, UUID.fromString(uuid));
+            if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            provisionLib.getEspDevice().connectBLEDevice(device, uuid);
             handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
         }
     };
@@ -442,6 +477,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void goToPopActivity() {
 
+        finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
         popIntent.putExtras(getIntent());
         popIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
@@ -450,6 +486,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void goToWifiScanListActivity() {
 
+        finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
         wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, "");
@@ -459,6 +496,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void goToProvisionActivity() {
 
+        finish();
         Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
         provisionIntent.putExtras(getIntent());
         provisionIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, "");

@@ -1,5 +1,20 @@
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.espressif.provision.device_scanner;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -12,54 +27,56 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.RequiresPermission;
+
 import com.espressif.provision.listeners.BleScanListener;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This class is used for BLE scan functionality.
+ */
 public class BleScanner {
 
-    private static final String TAG = BleScanner.class.getSimpleName();
+    private static final String TAG = "ESP:" + BleScanner.class.getSimpleName();
 
-    private static final long MIN_SCAN_TIME = 6000;
+    private static final long SCAN_TIME_OUT = 6000;
 
-    private Context context;
+    private Handler handler;
     private BleScanListener bleScanListener;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
 
-    private long scanTimeout;
     private boolean isScanning = false;
+    private String prefix;
 
     public BleScanner(Context context, BleScanListener bleScannerListener) {
 
-        this.context = context;
-        this.scanTimeout = MIN_SCAN_TIME;
         this.bleScanListener = bleScannerListener;
+        handler = new Handler();
 
-        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
     }
 
-    public BleScanner(Context context, long scanTimeoutInMillis, BleScanListener bleScannerListener) {
+    public BleScanner(Context context, String prefix, BleScanListener bleScannerListener) {
 
-        this.context = context;
-        this.bleScanListener = bleScannerListener;
-
-        if (scanTimeoutInMillis >= MIN_SCAN_TIME) {
-            this.scanTimeout = scanTimeoutInMillis;
-        } else {
-            Log.e(TAG, "Scan time should be more than 6 seconds.");
-            this.scanTimeout = MIN_SCAN_TIME;
-        }
-
-        final BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothAdapter = bluetoothManager.getAdapter();
+        this(context, bleScannerListener);
+        this.prefix = prefix;
     }
 
+    /**
+     * This method is used to start BLE scan.
+     */
+    @RequiresPermission(allOf = {Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN})
     public void startScan() {
 
-        Log.e(TAG, "startScan : " + scanTimeout);
+        if (!bluetoothAdapter.isEnabled()) {
+            bleScanListener.scanStartFailed();
+            return;
+        }
+        Log.d(TAG, "Starting BLE device scanning...");
 
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         List<ScanFilter> filters = new ArrayList<>();
@@ -69,45 +86,71 @@ public class BleScanner {
 
         isScanning = true;
         bluetoothLeScanner.startScan(filters, settings, scanCallback);
-        Handler someHandler = new Handler();
-        someHandler.postDelayed(new Runnable() {
-
-            @Override
-            public void run() {
-
-                stopScan();
-            }
-        }, 6000);
+        handler.postDelayed(stopScanTask, SCAN_TIME_OUT);
     }
 
+    /**
+     * This method is used to start BLE scan.
+     */
+    @RequiresPermission(allOf = {Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH})
     public void stopScan() {
 
-        Log.e(TAG, "onStopBleScan()");
+        Log.d(TAG, "Stop BLE device scan");
+        handler.removeCallbacks(stopScanTask);
 
         if (bluetoothLeScanner != null && bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
             try {
                 bluetoothLeScanner.stopScan(scanCallback);
             } catch (Exception e) {
                 Log.e(TAG, e.toString());
+                e.printStackTrace();
             }
         }
         isScanning = false;
         bleScanListener.scanCompleted();
     }
 
+    /**
+     * This method is used to check currently scanning is going on or not.
+     *
+     * @return Returns tru if scanning is going on.
+     */
     public boolean isScanning() {
         return isScanning;
     }
 
-    final ScanCallback scanCallback = new ScanCallback() {
+    private Runnable stopScanTask = new Runnable() {
 
         @Override
+        @RequiresPermission(allOf = {Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH})
+        public void run() {
+            stopScan();
+        }
+    };
+
+    /**
+     * ScanCallback to get scanned Peripheral.
+     */
+    private final ScanCallback scanCallback = new ScanCallback() {
+
+        @Override
+        @RequiresPermission(Manifest.permission.BLUETOOTH)
         public void onScanResult(int callbackType, ScanResult result) {
 
-            if (result.getDevice() != null && !TextUtils.isEmpty(result.getDevice().getName())) {
+            String deviceName = result.getDevice().getName();
 
-                Log.e(TAG, "========================== Device Found : " + result.getDevice().getName());
-                bleScanListener.onPeripheralFound(result.getDevice(), result);
+            if (result.getDevice() != null && !TextUtils.isEmpty(deviceName)) {
+
+                Log.d(TAG, "========== Device Found : " + deviceName);
+
+                if (TextUtils.isEmpty(prefix)) {
+
+                    bleScanListener.onPeripheralFound(result.getDevice(), result);
+
+                } else if (deviceName.startsWith(prefix)) {
+
+                    bleScanListener.onPeripheralFound(result.getDevice(), result);
+                }
             }
         }
 
@@ -120,8 +163,8 @@ public class BleScanner {
         @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
-            Log.d(TAG, "onScanFailed errorCode:" + errorCode);
-            bleScanListener.onFailure(new Exception("BLE connect failed with error code : " + errorCode));
+            Log.e(TAG, "onScanFailed, errorCode:" + errorCode);
+            bleScanListener.onFailure(new RuntimeException("BLE scanning failed with error code : " + errorCode));
         }
     };
 }

@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,11 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
 package com.espressif.provision.security;
 
 import android.util.Log;
 
-import com.espressif.provision.HexEncoder;
+import com.espressif.provision.utils.HexEncoder;
 import com.google.crypto.tink.subtle.X25519;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;

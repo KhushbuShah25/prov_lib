@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.espressif.provisioningap">
 
+    <uses-permission android:name="android.permission.CAMERA" />
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -20,6 +21,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".AddDeviceActivity"
+            android:label="@string/title_activity_connect_device"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ProvisionLanding"
             android:label="@string/title_activity_connect_device"

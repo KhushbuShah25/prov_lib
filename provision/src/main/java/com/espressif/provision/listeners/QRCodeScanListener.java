@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,23 +11,32 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package com.espressif.provision;
+
+package com.espressif.provision.listeners;
+
+import com.espressif.provision.ESPDevice;
 
 /**
- * Interface used for getting notified about the
- * request status sent over the Transport
+ * Interface for QR code scanning callbacks.
  */
-public interface ResponseListener {
+public interface QRCodeScanListener {
 
-    /***
-     * Successfully sent and received response from device
-     * @param returnData
+    /**
+     * Called when QR code is scanned so that app can display loading.
      */
-    void onSuccess(byte[] returnData);
+    void qrCodeScanned();
 
-    /***
-     * Failed to send data or receive response from device
-     * @param e
+    /**
+     * Called when received device from QR code is available in scanning.
+     *
+     * @param espDevice
+     */
+    void deviceDetected(ESPDevice espDevice);
+
+    /**
+     * Failed to scan QR code or device not found in scanning.
+     *
+     * @param e Exception
      */
     void onFailure(Exception e);
 }

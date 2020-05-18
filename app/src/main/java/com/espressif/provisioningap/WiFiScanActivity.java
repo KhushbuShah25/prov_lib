@@ -19,7 +19,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.espressif.provision.LibConstants;
+import com.espressif.provision.ESPConstants;
 import com.espressif.provision.ESPProvisionManager;
 import com.espressif.provision.WiFiAccessPoint;
 import com.espressif.provision.listeners.WiFiScanListener;
@@ -66,7 +66,15 @@ public class WiFiScanActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int pos, long l) {
 
                 Log.d(TAG, "Device to be connected -" + wifiAPList.get(pos));
-                askForNetwork(wifiAPList.get(pos).getWifiName(), wifiAPList.get(pos).getSecurity());
+                String ssid = wifiAPList.get(pos).getWifiName();
+
+                if (ssid.equals(getString(R.string.join_other_network))) {
+                    askForNetwork(wifiAPList.get(pos).getWifiName(), wifiAPList.get(pos).getSecurity());
+                } else if (wifiAPList.get(pos).getSecurity() == ESPConstants.WIFI_OPEN) {
+                    goForProvisioning(wifiAPList.get(pos).getWifiName(), "");
+                } else {
+                    askForNetwork(wifiAPList.get(pos).getWifiName(), wifiAPList.get(pos).getSecurity());
+                }
             }
         });
 
@@ -99,7 +107,7 @@ public class WiFiScanActivity extends AppCompatActivity {
         });
         handler.postDelayed(stopScanningTask, 15000);
 
-        ESPProvisionManager provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        ESPProvisionManager provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
         provisionLib.getEspDevice().scanNetworks(new WiFiScanListener() {
 
             @Override
@@ -194,7 +202,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
                     if (TextUtils.isEmpty(password)) {
 
-                        if (authMode != LibConstants.WIFI_OPEN) {
+                        if (authMode != ESPConstants.WIFI_OPEN) {
 
                             TextInputLayout passwordLayout = dialogView.findViewById(R.id.layout_password);
                             passwordLayout.setError(getString(R.string.error_password_empty));
@@ -207,7 +215,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
                     } else {
 
-                        if (authMode == LibConstants.WIFI_OPEN) {
+                        if (authMode == ESPConstants.WIFI_OPEN) {
                             password = "";
                         }
                         dialog.dismiss();

@@ -19,12 +19,12 @@ import android.os.Bundle;
 /**
  * Event class to send device connection / disconnection events to app.
  */
-public class DeviceProvEvent {
+public class DeviceConnectionEvent {
 
     private short eventType;
     private Bundle data;
 
-    public DeviceProvEvent(short type) {
+    public DeviceConnectionEvent(short type) {
         eventType = type;
     }
 

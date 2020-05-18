@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,12 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+
 package com.espressif.provision.transport;
 
 import android.util.Log;
 
-import com.espressif.provision.LibConstants;
-import com.espressif.provision.ResponseListener;
+import com.espressif.provision.ESPConstants;
+import com.espressif.provision.listeners.ResponseListener;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,7 +39,7 @@ public class SoftAPTransport implements Transport {
 
     private static final String TAG = "Espressif::" + SoftAPTransport.class.getSimpleName();
 
-    private String baseUrl = LibConstants.DEFAULT_WIFI_BASE_URL;
+    private String baseUrl = ESPConstants.DEFAULT_WIFI_BASE_URL;
     private ExecutorService workerThreadPool;
 
     /**
@@ -46,10 +48,6 @@ public class SoftAPTransport implements Transport {
      */
     public SoftAPTransport() {
         this.workerThreadPool = Executors.newSingleThreadExecutor();
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
     }
 
     private byte[] sendPostRequest(String path, byte[] data, final ResponseListener listener) {
@@ -81,16 +79,16 @@ public class SoftAPTransport implements Transport {
                 responseBytes = outputStream.toByteArray();
             }
         } catch (MalformedURLException e) {
-            e.printStackTrace();
             Log.e(TAG, e.getMessage());
+            e.printStackTrace();
             listener.onFailure(new RuntimeException("Error ! Connection Lost"));
         } catch (IOException e) {
-            e.printStackTrace();
             Log.e(TAG, e.getMessage());
+            e.printStackTrace();
             listener.onFailure(new RuntimeException("Error ! Connection Lost"));
         } catch (Exception e) {
-            e.printStackTrace();
             Log.e(TAG, e.getMessage());
+            e.printStackTrace();
             listener.onFailure(new RuntimeException("Error ! Connection Lost"));
         }
 

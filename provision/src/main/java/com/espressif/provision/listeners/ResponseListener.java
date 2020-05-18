@@ -12,28 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 package com.espressif.provision.listeners;
 
-import com.espressif.provision.WiFiAccessPoint;
-
-import java.util.ArrayList;
-
 /**
- * Interface for Wi-Fi device scanning. Same interface is used to return list of Wi-Fi access points scanned by phone and device.
+ * Interface used for getting notified about the
+ * request status sent over the Transport
  */
-public interface WiFiScanListener {
+public interface ResponseListener {
 
-    /**
-     * Callback method to return a list of Wi-Fi access points.
-     *
-     * @param wifiList ArrayList of Wi-Fi access points.
+    /***
+     * Successfully sent and received response from device
+     * @param returnData
      */
-    void onWifiListReceived(ArrayList<WiFiAccessPoint> wifiList);
+    void onSuccess(byte[] returnData);
 
-    /**
-     * Failed to scan for Wi-Fi devices.
-     *
-     * @param e Exception
+    /***
+     * Failed to send data or receive response from device
+     * @param e
      */
-    void onWiFiScanFailed(Exception e);
+    void onFailure(Exception e);
 }

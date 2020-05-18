@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package com.espressif.provision;
 
+import com.espressif.provision.listeners.ResponseListener;
 import com.espressif.provision.security.Security;
 import com.espressif.provision.transport.Transport;
 
@@ -87,7 +89,7 @@ public class Session {
                 }
             } else {
 
-                transport.sendConfigData(LibConstants.HANDLER_PROV_SESSION, request, new ResponseListener() {
+                transport.sendConfigData(ESPConstants.HANDLER_PROV_SESSION, request, new ResponseListener() {
 
                     @Override
                     public void onSuccess(byte[] returnData) {
@@ -193,7 +195,7 @@ public class Session {
         /**
          * Called when session establish fails.
          *
-         * @param e
+         * @param e Exception
          */
         void OnSessionEstablishFailed(Exception e);
     }

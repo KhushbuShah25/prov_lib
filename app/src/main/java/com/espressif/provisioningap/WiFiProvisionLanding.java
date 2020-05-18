@@ -14,7 +14,6 @@
 package com.espressif.provisioningap;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -22,6 +21,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -38,13 +38,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 
 import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.LibConstants;
 import com.espressif.provision.ESPProvisionManager;
+import com.espressif.provision.ESPConstants;
 import com.espressif.provision.WiFiAccessPoint;
-import com.espressif.provision.listeners.WiFiDeviceScanListener;
-import com.espressif.provision.device_scanner.WiFiScanner;
+import com.espressif.provision.listeners.WiFiScanListener;
 import com.google.android.material.textfield.TextInputLayout;
 
 import org.greenrobot.eventbus.EventBus;
@@ -57,18 +57,13 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
     private static final String TAG = WiFiProvisionLanding.class.getSimpleName();
 
-    // Request codes
-    private static final int REQUEST_ENABLE_BT = 1;
-    private static final int REQUEST_FINE_LOCATION = 2;
     private static final String BASE_URL = "192.168.4.1:80";
 
-    // Time out
-    private static final long SCAN_TIMEOUT = 3000;
-    private static final long DEVICE_CONNECT_TIMEOUT = 20000;
+    // Request codes
+    private static final int REQUEST_FINE_LOCATION = 2;
+    private static final int WIFI_SETTINGS_ACTIVITY_REQUEST = 121;
 
-    public static boolean isBleWorkDone = false;
-
-    private Button btnScan, btnPrefix;
+    private Button btnScan, btnPrefix, btnWiFiSettings;
     private ListView listView;
     private TextView textPrefix;
     private ProgressBar progressBar;
@@ -78,7 +73,6 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     private ArrayList<WiFiAccessPoint> deviceList;
     private Handler handler;
 
-    private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
     private ESPProvisionManager provisionLib;
     private int securityType;
@@ -88,7 +82,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bleprovision_landing);
+        setContentView(R.layout.activity_wifiprovision_landing);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle(R.string.title_activity_connect_device);
         setSupportActionBar(toolbar);
@@ -99,7 +93,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         handler = new Handler();
         deviceList = new ArrayList<>();
 
-        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
     }
@@ -107,23 +101,10 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
-
-        if (!isDeviceConnected && !isConnecting) {
-            startScan();
-        }
-
-        if (isBleWorkDone) {
-            btnScan.setVisibility(View.VISIBLE);
-            startScan();
-        }
     }
 
     @Override
     public void onBackPressed() {
-        isBleWorkDone = true;
         super.onBackPressed();
     }
 
@@ -139,14 +120,23 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d(TAG, "onActivityResult, requestCode : " + requestCode + ", resultCode : " + resultCode);
 
-        // User chose not to enable Bluetooth.
-        if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
-            finish();
-            return;
-        }
+        if (requestCode == WIFI_SETTINGS_ACTIVITY_REQUEST) {
 
-        if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
-            startScan();
+            // TODO
+            Log.e(TAG, "Returned from WIFI_SETTINGS_ACTIVITY_REQUEST");
+            if (ActivityCompat.checkSelfPermission(WiFiProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                btnScan.setEnabled(false);
+                btnScan.setAlpha(0.5f);
+                btnScan.setTextColor(Color.WHITE);
+                btnWiFiSettings.setEnabled(false);
+                btnWiFiSettings.setAlpha(0.5f);
+                btnWiFiSettings.setTextColor(Color.WHITE);
+                progressBar.setVisibility(View.VISIBLE);
+                provisionLib.getEspDevice().connectWiFiDevice();
+            } else {
+                Log.e(TAG, "ACCESS_FINE_LOCATION is not granted");
+            }
         }
     }
 
@@ -175,12 +165,16 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
         switch (event.getEventType()) {
 
-            case LibConstants.EVENT_DEVICE_CONNECTED:
+            case ESPConstants.EVENT_DEVICE_CONNECTED:
                 Log.e(TAG, "Device Connected Event Received");
-                ArrayList<String> deviceCaps = provisionLib.getDeviceCapabilities();
-                progressBar.setVisibility(View.GONE);
+                ArrayList<String> deviceCaps = provisionLib.getEspDevice().getDeviceCapabilities();
                 isConnecting = false;
                 isDeviceConnected = true;
+                btnScan.setEnabled(true);
+                btnScan.setAlpha(1f);
+                btnWiFiSettings.setEnabled(true);
+                btnWiFiSettings.setAlpha(1f);
+                progressBar.setVisibility(View.GONE);
 
                 if (deviceCaps != null && !deviceCaps.contains("no_pop") && securityType == 1) {
 
@@ -196,20 +190,29 @@ public class WiFiProvisionLanding extends AppCompatActivity {
                 }
                 break;
 
-            case LibConstants.EVENT_DEVICE_DISCONNECTED:
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
 
+                btnScan.setEnabled(true);
+                btnScan.setAlpha(1f);
+                btnWiFiSettings.setEnabled(true);
+                btnWiFiSettings.setAlpha(1f);
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
                 isDeviceConnected = false;
                 Toast.makeText(WiFiProvisionLanding.this, "Device disconnected", Toast.LENGTH_SHORT).show();
                 break;
 
-            case LibConstants.EVENT_DEVICE_CONNECTION_FAILED:
+            case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
+
+                btnScan.setEnabled(true);
+                btnScan.setAlpha(1f);
+                btnWiFiSettings.setEnabled(true);
+                btnWiFiSettings.setAlpha(1f);
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
                 isDeviceConnected = false;
-//                Toast.makeText(BLEProvisionLanding.this, "Failed to connect with device", Toast.LENGTH_SHORT).show();
-                alertForDeviceNotSupported("Failed to connect with device");
+                Toast.makeText(WiFiProvisionLanding.this, "Failed to connect with device", Toast.LENGTH_SHORT).show();
+//                alertForDeviceNotSupported("Failed to connect with device");
                 break;
         }
     }
@@ -217,6 +220,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     private void initViews() {
 
         btnScan = findViewById(R.id.btn_scan);
+        btnWiFiSettings = findViewById(R.id.btn_wifi_settings);
         listView = findViewById(R.id.ble_devices_list);
         progressBar = findViewById(R.id.ble_landing_progress_indicator);
         prefixLayout = findViewById(R.id.prefix_layout);
@@ -229,6 +233,8 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         listView.setOnItemClickListener(onDeviceCLickListener);
 
         btnScan.setOnClickListener(btnScanClickListener);
+        btnWiFiSettings.setOnClickListener(btnWiFiSettingsClickListener);
+        startScan();
     }
 
     private boolean hasPermissions() {
@@ -286,6 +292,9 @@ public class WiFiProvisionLanding extends AppCompatActivity {
             btnScan.setEnabled(false);
             btnScan.setAlpha(0.5f);
             btnScan.setTextColor(Color.WHITE);
+            btnWiFiSettings.setEnabled(false);
+            btnWiFiSettings.setAlpha(0.5f);
+            btnWiFiSettings.setTextColor(Color.WHITE);
             progressBar.setVisibility(View.VISIBLE);
             listView.setVisibility(View.GONE);
 
@@ -293,6 +302,8 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
             btnScan.setEnabled(true);
             btnScan.setAlpha(1f);
+            btnWiFiSettings.setEnabled(true);
+            btnWiFiSettings.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
             listView.setVisibility(View.VISIBLE);
         }
@@ -312,6 +323,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
 
+                dialog.dismiss();
                 finish();
             }
         });
@@ -329,20 +341,29 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         }
     };
 
-    private WiFiDeviceScanListener wifiScanListener = new WiFiDeviceScanListener() {
+    private View.OnClickListener btnWiFiSettingsClickListener = new View.OnClickListener() {
 
         @Override
-        public void scanCompleted(ArrayList<WiFiAccessPoint> scanResults) {
+        public void onClick(View v) {
+
+            startActivityForResult(new Intent(Settings.ACTION_WIFI_SETTINGS), WIFI_SETTINGS_ACTIVITY_REQUEST);
+        }
+    };
+
+    private WiFiScanListener wifiScanListener = new WiFiScanListener() {
+
+        @Override
+        public void onWifiListReceived(ArrayList<WiFiAccessPoint> wifiList) {
 
             isScanning = false;
-            deviceList.addAll(scanResults);
+            deviceList.addAll(wifiList);
             listView.setVisibility(View.VISIBLE);
             adapter.notifyDataSetChanged();
             updateProgressAndScanBtn();
         }
 
         @Override
-        public void onFailure(Exception e) {
+        public void onWiFiScanFailed(Exception e) {
             isScanning = false;
             listView.setVisibility(View.VISIBLE);
             adapter.notifyDataSetChanged();
@@ -358,20 +379,28 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
             isConnecting = true;
             isDeviceConnected = false;
-            btnScan.setVisibility(View.GONE);
-            listView.setVisibility(View.GONE);
-            progressBar.setVisibility(View.VISIBLE);
-            WiFiProvisionLanding.this.position = position;
             WiFiAccessPoint wifiDevice = adapter.getItem(position);
             Log.d(TAG, "=================== Connect to device : " + wifiDevice.getWifiName());
 
-            if (wifiDevice.getSecurity() != LibConstants.WIFI_OPEN) {
-                provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, wifiDevice.getWifiName(), "");
+            if (wifiDevice.getSecurity() == ESPConstants.WIFI_OPEN) {
+
+                if (ActivityCompat.checkSelfPermission(WiFiProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                    btnScan.setEnabled(false);
+                    btnScan.setAlpha(0.5f);
+                    btnScan.setTextColor(Color.WHITE);
+                    btnWiFiSettings.setEnabled(false);
+                    btnWiFiSettings.setAlpha(0.5f);
+                    btnWiFiSettings.setTextColor(Color.WHITE);
+                    progressBar.setVisibility(View.VISIBLE);
+
+                    provisionLib.getEspDevice().connectWiFiDevice(WiFiProvisionLanding.this, wifiDevice.getWifiName(), "");
+                } else {
+                    Log.e(TAG, "ACCESS_FINE_LOCATION is not granted");
+                }
             } else {
                 askForNetwork(wifiDevice.getWifiName(), wifiDevice.getSecurity());
             }
-
-//            handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
         }
     };
 
@@ -387,27 +416,27 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
     private void goToPopActivity() {
 
+        finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
         popIntent.putExtras(getIntent());
-//        popIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
         startActivity(popIntent);
     }
 
     private void goToWifiScanListActivity() {
 
+        finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
         wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, "");
-//        wifiListIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
         startActivity(wifiListIntent);
     }
 
     private void goToProvisionActivity() {
 
+        finish();
         Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
         provisionIntent.putExtras(getIntent());
         provisionIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, "");
-//        provisionIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
         startActivity(provisionIntent);
     }
 
@@ -424,7 +453,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
         builder.setTitle(ssid);
         etSsid.setVisibility(View.GONE);
 
-        builder.setPositiveButton(R.string.btn_provision, new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.btn_connect, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -433,7 +462,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
 
                 if (TextUtils.isEmpty(password)) {
 
-                    if (authMode != LibConstants.WIFI_OPEN) {
+                    if (authMode != ESPConstants.WIFI_OPEN) {
 
                         TextInputLayout passwordLayout = dialogView.findViewById(R.id.layout_password);
                         passwordLayout.setError(getString(R.string.error_password_empty));
@@ -441,16 +470,40 @@ public class WiFiProvisionLanding extends AppCompatActivity {
                     } else {
 
                         dialog.dismiss();
-                        provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, ssid, password);
+                        if (ActivityCompat.checkSelfPermission(WiFiProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            // TODO: Consider calling
+                            //    ActivityCompat#requestPermissions
+                            // here to request the missing permissions, and then overriding
+                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                            //                                          int[] grantResults)
+                            // to handle the case where the user grants the permission. See the documentation
+                            // for ActivityCompat#requestPermissions for more details.
+                            return;
+                        }
+                        btnScan.setEnabled(false);
+                        btnScan.setAlpha(0.5f);
+                        btnScan.setTextColor(Color.WHITE);
+                        btnWiFiSettings.setEnabled(false);
+                        btnWiFiSettings.setAlpha(0.5f);
+                        btnWiFiSettings.setTextColor(Color.WHITE);
+                        progressBar.setVisibility(View.VISIBLE);
+                        provisionLib.getEspDevice().connectWiFiDevice(WiFiProvisionLanding.this, ssid, password);
                     }
 
                 } else {
 
-                    if (authMode == LibConstants.WIFI_OPEN) {
+                    if (authMode == ESPConstants.WIFI_OPEN) {
                         password = "";
                     }
                     dialog.dismiss();
-                    provisionLib.connectWiFiDevice(WiFiProvisionLanding.this, BASE_URL, ssid, password);
+                    btnScan.setEnabled(false);
+                    btnScan.setAlpha(0.5f);
+                    btnScan.setTextColor(Color.WHITE);
+                    btnWiFiSettings.setEnabled(false);
+                    btnWiFiSettings.setAlpha(0.5f);
+                    btnWiFiSettings.setTextColor(Color.WHITE);
+                    progressBar.setVisibility(View.VISIBLE);
+                    provisionLib.getEspDevice().connectWiFiDevice(WiFiProvisionLanding.this, ssid, password);
                 }
             }
         });

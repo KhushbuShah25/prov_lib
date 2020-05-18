@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,7 +28,7 @@ import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.LibConstants;
+import com.espressif.provision.ESPConstants;
 import com.espressif.provision.ESPProvisionManager;
 
 import org.greenrobot.eventbus.EventBus;
@@ -49,7 +50,7 @@ public class ProvisionLanding extends AppCompatActivity {
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
 
-    private CardView btnWiFiSettings;
+    private Button btnWiFiSettings;
     private TextView txtWiFiSettingBtn;
     private ImageView arrowImageWiFiSetting;
     private ContentLoadingProgressBar progressBarWiFiSetting;
@@ -61,7 +62,7 @@ public class ProvisionLanding extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
         securityType = getIntent().getIntExtra("security_type", 0);
-        provisionLib = ESPProvisionManager.getProvisionInstance(getApplicationContext());
+        provisionLib = ESPProvisionManager.getInstance(getApplicationContext());
         EventBus.getDefault().register(this);
         initViews();
     }
@@ -106,10 +107,10 @@ public class ProvisionLanding extends AppCompatActivity {
 
         switch (event.getEventType()) {
 
-            case LibConstants.EVENT_DEVICE_CONNECTED:
+            case ESPConstants.EVENT_DEVICE_CONNECTED:
 
                 Log.e(TAG, "Device Connected Event Received");
-                ArrayList<String> deviceCaps = provisionLib.getDeviceCapabilities();
+                ArrayList<String> deviceCaps = provisionLib.getEspDevice().getDeviceCapabilities();
 
                 btnConnect.setEnabled(true);
                 btnConnect.setAlpha(1f);
@@ -131,7 +132,7 @@ public class ProvisionLanding extends AppCompatActivity {
                 }
                 break;
 
-            case LibConstants.EVENT_DEVICE_CONNECTION_FAILED:
+            case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
 
                 btnConnect.setEnabled(true);
                 btnConnect.setAlpha(1f);
@@ -168,7 +169,7 @@ public class ProvisionLanding extends AppCompatActivity {
         txtConnectBtn.setText(R.string.btn_connecting);
         progressBar.setVisibility(View.VISIBLE);
         arrowImage.setVisibility(View.GONE);
-        provisionLib.connectWiFiDevice(BASE_URL);
+        provisionLib.getEspDevice().connectWiFiDevice();
     }
 
     private View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
