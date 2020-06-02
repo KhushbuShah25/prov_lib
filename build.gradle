@@ -32,10 +32,10 @@ ext {
 
     // ValidateTor Library Info
     libVersionCode = 1
-    libVersionName = '0.0.10'
+    libVersionName = '0.0.11'
     libPomUrl = 'https://github.com/khushbushah2302/prov_lib'
     libGithubRepo = 'khushbushah2302/prov_lib'
-    libModuleName = 'provision'
+    libModuleName = 'provisioning'
     libModuleDesc = 'Provisioning Library Sample.'
     libBintrayName = 'Provisioning_Lib'
 }

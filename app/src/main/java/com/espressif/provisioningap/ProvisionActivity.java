@@ -24,10 +24,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
-import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.ESPProvisionManager;
-import com.espressif.provision.listeners.ProvisionListener;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.provisioning.listeners.ProvisionListener;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -78,7 +78,7 @@ public class ProvisionActivity extends AppCompatActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEvent(DeviceProvEvent event) {
+    public void onEvent(DeviceConnectionEvent event) {
         Log.d(TAG, "ON UPDATE EVENT RECEIVED : " + event.getEventType());
 
         switch (event.getEventType()) {

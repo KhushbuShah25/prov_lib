@@ -11,8 +11,8 @@ import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.WiFiAccessPoint;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.WiFiAccessPoint;
 
 import java.util.ArrayList;
 

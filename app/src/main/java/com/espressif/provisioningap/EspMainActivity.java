@@ -33,9 +33,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 
-import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.ESPProvisionManager;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPProvisionManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -119,7 +119,7 @@ public class EspMainActivity extends AppCompatActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEvent(DeviceProvEvent event) {
+    public void onEvent(DeviceConnectionEvent event) {
 
         switch (event.getEventType()) {
 

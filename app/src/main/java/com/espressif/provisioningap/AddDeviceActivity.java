@@ -18,11 +18,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 
-import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.ESPDevice;
-import com.espressif.provision.ESPProvisionManager;
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.listeners.QRCodeScanListener;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPDevice;
+import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.listeners.QRCodeScanListener;
 import com.wang.avi.AVLoadingIndicatorView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -98,7 +98,7 @@ public class AddDeviceActivity extends AppCompatActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEvent(DeviceProvEvent event) {
+    public void onEvent(DeviceConnectionEvent event) {
 
         Log.d(TAG, "ON Device Prov Event RECEIVED : " + event.getEventType());
 

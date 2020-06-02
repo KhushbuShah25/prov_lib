@@ -19,10 +19,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.ESPProvisionManager;
-import com.espressif.provision.WiFiAccessPoint;
-import com.espressif.provision.listeners.WiFiScanListener;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.provisioning.WiFiAccessPoint;
+import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;

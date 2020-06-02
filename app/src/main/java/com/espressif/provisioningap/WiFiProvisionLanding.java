@@ -40,11 +40,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 
-import com.espressif.provision.DeviceProvEvent;
-import com.espressif.provision.ESPProvisionManager;
-import com.espressif.provision.ESPConstants;
-import com.espressif.provision.WiFiAccessPoint;
-import com.espressif.provision.listeners.WiFiScanListener;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.WiFiAccessPoint;
+import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.google.android.material.textfield.TextInputLayout;
 
 import org.greenrobot.eventbus.EventBus;
@@ -158,7 +158,7 @@ public class WiFiProvisionLanding extends AppCompatActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEvent(DeviceProvEvent event) {
+    public void onEvent(DeviceConnectionEvent event) {
 
         Log.d(TAG, "ON Device Prov Event RECEIVED : " + event.getEventType());
         handler.removeCallbacks(disconnectDeviceTask);
